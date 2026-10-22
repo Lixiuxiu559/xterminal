@@ -1,0 +1,17 @@
+{
+  "passed": false,
+  "outcome": "failed",
+  "error": "Codex 当前配置的模型不可用，请在官方 CLI 配置中选择有权限的模型",
+  "diagnostics": [
+    {
+      "category": "MODEL_UNAVAILABLE",
+      "httpStatus": null
+    },
+    {
+      "category": "MODEL_UNAVAILABLE",
+      "httpStatus": null
+    }
+  ],
+  "modelTurnStarted": true,
+  "at": "2026-10-22T00:55:57.384Z"
+}

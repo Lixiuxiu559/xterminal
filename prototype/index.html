@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#f7f8f5">
+  <meta name="description" content="XTerminal 本地 AI 开发工作空间 · 桌面与移动交互原型">
+  <title>XTerminal · 本地开发工作空间</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar" aria-label="项目与会话">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="m9 10 9 12M18 10 9 22M21 22h4"/></svg></span>
+      <div><b>XTerminal</b><span class="brand-caption">你的本地开发空间</span></div>
+      <button class="icon mobile-only" id="close-nav" aria-label="关闭导航" data-icon="x"></button>
+    </div>
+    <button class="new-session" id="new-session"><span data-icon="plus"></span><span>新建会话</span><kbd>⌘ N</kbd></button>
+    <label class="search-box" for="session-search"><span data-icon="search"></span><input id="session-search" type="search" placeholder="搜索项目或会话" autocomplete="off"><kbd>⌘ K</kbd></label>
+    <div class="nav-label"><span>项目</span><span id="project-count">2 个</span></div>
+    <nav id="session-list" aria-label="会话列表"></nav>
+    <div class="sidebar-bottom">
+      <button class="device" id="connection"><span class="device-icon" data-icon="phone"></span><span><b>连接手机</b><small>在同一内网，接着工作</small></span><span class="device-arrow" data-icon="arrow-up-right"></span></button>
+      <div class="profile"><span class="avatar">L</span><span><b>lixiuxiu</b><small><i class="dot"></i> 本地工作空间</small></span><button class="icon" id="about" aria-label="设置与外观" title="设置与外观" data-icon="settings"></button></div>
+      <div class="prototype-label"><span>交互原型</span><span>v0.3</span></div>
+    </div>
+  </aside>
+  <main id="main">
+    <header class="main-header">
+      <div class="header-left">
+        <button class="icon nav-toggle" id="open-nav" aria-label="展开或收起导航" aria-expanded="true" title="展开或收起导航" data-icon="panel-left"></button>
+        <div class="heading-context"><span class="project-crumb"><span data-icon="folder"></span><span id="project-name">xterminal</span><span class="crumb-divider">/</span></span><strong id="session-name"></strong></div>
+      </div>
+      <div class="header-right"><span id="engine-badge" class="engine" title="此会话的引擎已固定"></span><span id="status" class="session-status"></span><span class="header-separator"></span><button class="icon" id="details-toggle" aria-label="会话详情" aria-expanded="false" title="会话详情" data-icon="panel-right"></button></div>
+    </header>
+    <div id="offline" class="offline" hidden><span data-icon="wifi-off"></span><span><b>与电脑的连接已断开</b><small>草稿已保留，电脑上的任务不会因此终止。</small></span><button id="reconnect">重新连接<span data-icon="refresh"></span></button></div>
+    <div class="workspace">
+      <div class="work-content">
+        <section id="conversation" aria-label="会话消息" aria-live="polite"></section>
+        <section id="terminal-view" hidden aria-label="Shell 终端">
+          <div class="terminal-top"><span><i class="dot"></i><b>zsh</b><span id="shell-process">Shell 已就绪</span></span><span class="terminal-local"><span data-icon="monitor"></span>此电脑</span></div>
+          <div class="terminal-scroll" id="terminal-scroll"><div id="terminal-output" role="log" aria-live="polite"></div><form id="shell-form"><span class="prompt">❯</span><input id="shell-input" aria-label="Shell 命令" placeholder="输入命令…" autocomplete="off" spellcheck="false"><button class="terminal-submit" aria-label="执行命令" title="执行命令" data-icon="corner-down-left"></button></form></div>
+          <div class="terminal-controls"><button id="ctrl-c"><span data-icon="stop"></span><span>中断命令</span><kbd>Ctrl C</kbd></button><button id="clear-terminal"><span data-icon="clear"></span><span>清屏</span></button><span class="terminal-note">原型演示 · 不会执行真实命令</span></div>
+        </section>
+        <footer id="composer-area">
+          <div id="pending-action" hidden></div>
+          <form id="chat-form"><label class="sr-only" for="message-input">发送给当前会话的消息</label><textarea id="message-input" aria-label="会话消息输入" placeholder="描述任务，或继续提问…" rows="2"></textarea><div class="composer-bottom"><span class="composer-context"><span data-icon="folder"></span><span id="composer-project">xterminal</span><span class="context-separator">·</span><span>本地目录</span></span><button id="send" class="send" aria-label="发送消息" title="发送消息" data-icon="arrow-up" disabled></button><button id="stop" class="stop" type="button" hidden><span data-icon="stop"></span>停止</button></div></form>
+          <div class="composer-hint"><span id="input-hint">Enter 发送 · Shift + Enter 换行</span><span><i class="dot"></i> 原型演示，任务未实际执行</span></div>
+        </footer>
+      </div>
+      <section id="details-panel" hidden aria-label="会话详情">
+        <div class="details-heading"><span><span data-icon="sliders"></span><b>会话详情</b></span><button class="icon" id="close-details" aria-label="关闭会话详情" data-icon="x"></button></div>
+        <div class="detail-group"><span class="detail-label">项目</span><strong id="detail-project"></strong><span class="detail-label">工作目录</span><code id="working-dir"></code></div>
+        <div class="detail-group"><span class="detail-label">会话引擎</span><strong id="detail-engine"></strong><p><span data-icon="lock"></span>创建后固定，不能切换</p><span class="detail-label">当前状态</span><strong id="detail-state"></strong></div>
+        <div class="detail-group"><span class="detail-label">运行位置</span><strong><span data-icon="monitor"></span> 此电脑 <span class="local-tag">本地</span></strong><p><i class="dot" id="detail-dot"></i><span id="connection-status">电脑已连接</span></p><button class="text-button" id="detail-connect">管理手机连接<span data-icon="arrow-up-right"></span></button></div>
+        <button class="secondary" id="rename"><span data-icon="edit"></span>重命名会话</button>
+        <div class="details-bottom"><span data-icon="shield"></span><span>命令与文件操作在电脑上进行。<br>手机访问同一个会话。</span></div>
+      </section>
+    </div>
+  </main>
+  <div id="nav-backdrop" hidden></div>
+</div>
+<dialog id="create-dialog" aria-labelledby="create-heading"><form id="create-form">
+  <div class="modal-heading"><span class="modal-icon" data-icon="plus"></span><button class="icon" type="button" data-close aria-label="关闭" data-icon="x"></button></div>
+  <h1 id="create-heading">开始一段新的工作</h1><p class="muted">选好项目和引擎，剩下的在会话里继续。</p>
+  <div class="form-section"><label for="project-select">工作项目</label><select id="project-select"><option value="xterminal">xterminal</option><option value="personal-site">personal-site</option></select><label for="directory">工作目录</label><input id="directory" value="~/Projects/xterminal" required></div>
+  <fieldset class="engine-fieldset"><legend>选择引擎</legend><div class="engine-options" role="group" aria-label="选择会话引擎">
+    <button type="button" class="engine-option selected" data-engine="claude" aria-pressed="true"><span class="engine-symbol claude" data-icon="spark"></span><span><b>Claude Code</b><small>对话协作，逐步完成开发任务</small></span><span class="radio"></span></button>
+    <button type="button" class="engine-option" data-engine="codex" aria-pressed="false"><span class="engine-symbol codex" data-icon="code"></span><span><b>Codex</b><small>交给 Codex 理解代码并推进任务</small></span><span class="radio"></span></button>
+    <button type="button" class="engine-option" data-engine="shell" aria-pressed="false"><span class="engine-symbol shell" data-icon="terminal"></span><span><b>Shell</b><small>直接运行命令、脚本与开发服务</small></span><span class="radio"></span></button>
+  </div></fieldset>
+  <p class="locked"><span data-icon="lock"></span>创建后引擎固定，可为不同引擎分别创建会话。</p>
+  <label for="new-title">会话名称 <span class="optional">选填</span></label><input id="new-title" placeholder="给这次工作起个名字" maxlength="60">
+  <div class="modal-actions"><button class="secondary" type="button" data-close>取消</button><button class="primary" type="submit">创建会话<span data-icon="arrow-right"></span></button></div>
+</form></dialog>
+<dialog id="connect-dialog" aria-labelledby="connect-heading">
+  <div class="modal-heading"><span class="modal-icon" data-icon="devices"></span><button class="icon" data-close aria-label="关闭" data-icon="x"></button></div>
+  <h1 id="connect-heading">离开桌面，继续工作</h1><p class="muted">手机和电脑接入同一内网，即可访问已有会话。</p>
+  <ol class="connection-steps"><li><span class="step-number">1</span><div><b>在手机浏览器打开地址</b><small>以下为示例地址，尚不能真实连接。</small></div></li></ol>
+  <div class="copy-row"><code>http://192.168.1.8:7680</code><button id="copy-address" aria-label="复制示例地址"><span data-icon="copy"></span>复制</button></div>
+  <ol class="connection-steps" start="2"><li><span class="step-number">2</span><div><b>使用配对码完成授权</b><small>电脑上的会话将出现在手机中。</small></div></li></ol>
+  <div class="pairing"><span>配对码<small>演示码</small></span><b>4829 1608</b></div>
+  <div class="paired-device"><span class="paired-icon" data-icon="phone"></span><div><b>iPhone · Safari</b><small id="phone-state">等待配对</small></div><button id="pair-phone">模拟配对</button></div>
+  <p class="connection-note"><span data-icon="info"></span>电脑需保持开机且服务运行。当前为连接流程演示。</p><button class="secondary wide" id="mobile-preview">预览手机界面<span data-icon="arrow-up-right"></span></button>
+</dialog>
+<dialog id="rename-dialog" aria-labelledby="rename-heading"><form id="rename-form"><div class="modal-heading"><span class="modal-icon" data-icon="edit"></span><button class="icon" type="button" data-close aria-label="关闭" data-icon="x"></button></div><h1 id="rename-heading">重命名会话</h1><label for="rename-input">会话名称</label><input id="rename-input" required maxlength="60"><div class="modal-actions"><button class="secondary" type="button" data-close>取消</button><button class="primary">保存名称</button></div></form></dialog>
+<dialog id="settings-dialog" aria-labelledby="settings-heading"><div class="modal-heading"><span class="modal-icon" data-icon="settings"></span><button class="icon" data-close aria-label="关闭" data-icon="x"></button></div><h1 id="settings-heading">设置与外观</h1><p class="muted">让工作空间适合你的使用习惯。</p>
+  <div class="settings-row"><span><b>界面主题</b><small>Shell 终端始终使用深色画布</small></span><div class="theme-switch" role="group" aria-label="界面主题"><button id="theme-light" aria-pressed="true"><span data-icon="sun"></span>浅色</button><button id="theme-dark" aria-pressed="false"><span data-icon="moon"></span>深色</button></div></div>
+  <div class="settings-row"><span><b>电脑连接</b><small id="settings-connection">电脑已连接</small></span><button class="secondary" id="simulate-offline">模拟断线</button></div>
+  <div class="settings-row"><span><b>手机界面</b><small>预览触屏布局和操作</small></span><button class="secondary" id="settings-mobile">查看布局</button></div>
+  <p class="connection-note">当前是交互原型，不执行命令或连接真实引擎。刷新页面将重置会话演示，外观偏好保存在当前浏览器。</p>
+</dialog>
+<div id="toast" role="status"></div>
+<script src="icons.js"></script><script src="app.js"></script>
+</body>
+</html>

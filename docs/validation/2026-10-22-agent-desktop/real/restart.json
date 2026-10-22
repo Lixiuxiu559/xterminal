@@ -1,0 +1,29 @@
+{
+  "passed": true,
+  "mode": "real",
+  "phase": "restart",
+  "realModel": true,
+  "hostInstanceId": "48886a75-91af-4919-ba02-b7fb1c67c0a3",
+  "checks": [
+    "codex: 重启历史未重复、未自动发送；明确续聊恢复原生上下文标记",
+    "claude: 重启历史未重复、未自动发送；明确续聊恢复原生上下文标记"
+  ],
+  "at": "2026-10-22T07:48:41.767Z",
+  "database": {
+    "contextsSaved": true,
+    "sameNativeContextAfterRestart": true,
+    "noActiveRunsAfterExit": true,
+    "runs": [
+      {
+        "status": "completed",
+        "count": 6
+      }
+    ],
+    "receipts": [
+      {
+        "state": "completed",
+        "count": 6
+      }
+    ]
+  }
+}

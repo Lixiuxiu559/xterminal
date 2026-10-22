@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "engine": "codex",
+  "model": "gpt-6-astra",
+  "realModelTurn": true,
+  "contextSaved": true,
+  "streamingOrFinalMessage": true,
+  "terminalOutcome": "completed",
+  "toolsUsed": false,
+  "at": "2026-10-22T00:59:30.480Z"
+}

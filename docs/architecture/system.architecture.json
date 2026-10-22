@@ -1,0 +1,273 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "XTerminal · 本地会话架构",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1350,
+      900
+    ]
+  },
+  "components": [
+    {
+      "id": "desktop-client",
+      "type": "frontend",
+      "label": "桌面客户端",
+      "sublabel": "Electron + React",
+      "pos": [
+        35,
+        130
+      ],
+      "size": [
+        166,
+        86
+      ]
+    },
+    {
+      "id": "mobile-client",
+      "type": "frontend",
+      "label": "手机浏览器",
+      "sublabel": "共享 React 页面",
+      "pos": [
+        35,
+        455
+      ],
+      "size": [
+        166,
+        86
+      ]
+    },
+    {
+      "id": "desktop-bridge",
+      "type": "security",
+      "label": "桌面主进程",
+      "sublabel": "窗口 / 系统能力 / IPC",
+      "pos": [
+        293,
+        130
+      ],
+      "size": [
+        169,
+        86
+      ]
+    },
+    {
+      "id": "lan-gateway",
+      "type": "security",
+      "label": "内网访问入口",
+      "sublabel": "配对 / HTTPS / WSS",
+      "pos": [
+        293,
+        455
+      ],
+      "size": [
+        169,
+        86
+      ]
+    },
+    {
+      "id": "session-host",
+      "type": "backend",
+      "label": "会话服务",
+      "sublabel": "队列 / 控制权 / 事件",
+      "pos": [
+        562,
+        290
+      ],
+      "size": [
+        177,
+        100
+      ]
+    },
+    {
+      "id": "claude-worker",
+      "type": "backend",
+      "label": "Claude Code 适配器",
+      "sublabel": "官方 CLI / 结构化流",
+      "pos": [
+        855,
+        100
+      ],
+      "size": [
+        177,
+        86
+      ]
+    },
+    {
+      "id": "codex-worker",
+      "type": "backend",
+      "label": "Codex 适配器",
+      "sublabel": "app-server / stdio",
+      "pos": [
+        855,
+        320
+      ],
+      "size": [
+        177,
+        86
+      ]
+    },
+    {
+      "id": "shell-worker",
+      "type": "backend",
+      "label": "Shell 适配器",
+      "sublabel": "node-pty / 终端状态",
+      "pos": [
+        855,
+        560
+      ],
+      "size": [
+        177,
+        86
+      ]
+    },
+    {
+      "id": "local-store",
+      "type": "database",
+      "label": "本地 SQLite",
+      "sublabel": "会话 / 事件 / 设备授权",
+      "pos": [
+        562,
+        660
+      ],
+      "size": [
+        177,
+        86
+      ]
+    },
+    {
+      "id": "model-provider",
+      "type": "external",
+      "label": "引擎的模型服务",
+      "sublabel": "由用户的引擎自行连接",
+      "pos": [
+        1132,
+        210
+      ],
+      "size": [
+        173,
+        86
+      ]
+    },
+    {
+      "id": "local-workspace",
+      "type": "database",
+      "label": "电脑工作目录",
+      "sublabel": "项目文件 / 命令执行",
+      "pos": [
+        1132,
+        560
+      ],
+      "size": [
+        173,
+        86
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "desktop-ipc",
+      "from": "desktop-client",
+      "to": "desktop-bridge",
+      "label": "白名单 IPC",
+      "variant": "emphasis"
+    },
+    {
+      "id": "phone-lan",
+      "from": "mobile-client",
+      "to": "lan-gateway",
+      "label": "内网直连",
+      "variant": "security"
+    },
+    {
+      "id": "main-host",
+      "from": "desktop-bridge",
+      "to": "session-host",
+      "label": "MessagePort",
+      "variant": "emphasis"
+    },
+    {
+      "id": "gateway-host",
+      "from": "lan-gateway",
+      "to": "session-host",
+      "label": "认证后的命令",
+      "variant": "security"
+    },
+    {
+      "id": "host-claude",
+      "from": "session-host",
+      "to": "claude-worker",
+      "label": "固定引擎",
+      "variant": "emphasis"
+    },
+    {
+      "id": "host-codex",
+      "from": "session-host",
+      "to": "codex-worker",
+      "label": "固定引擎",
+      "variant": "emphasis"
+    },
+    {
+      "id": "host-shell",
+      "from": "session-host",
+      "to": "shell-worker",
+      "label": "固定引擎",
+      "variant": "emphasis"
+    },
+    {
+      "id": "host-store",
+      "from": "session-host",
+      "to": "local-store",
+      "label": "持久化事件",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    },
+    {
+      "id": "claude-model",
+      "from": "claude-worker",
+      "to": "model-provider",
+      "label": "HTTPS"
+    },
+    {
+      "id": "codex-model",
+      "from": "codex-worker",
+      "to": "model-provider",
+      "label": "HTTPS"
+    },
+    {
+      "id": "shell-files",
+      "from": "shell-worker",
+      "to": "local-workspace",
+      "label": "PTY"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "界面与会话分离",
+      "items": [
+        "关窗或手机断线不结束任务",
+        "显式退出应用时结束本地服务"
+      ]
+    },
+    {
+      "dot": "cyan",
+      "title": "三种固定引擎",
+      "items": [
+        "保留引擎专属交互能力",
+        "Agent 不解析终端屏幕拼接对话"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "第一版边界",
+      "items": [
+        "macOS 首发，手机仅内网接入",
+        "无云端执行、无中继、无唤醒"
+      ]
+    }
+  ]
+}

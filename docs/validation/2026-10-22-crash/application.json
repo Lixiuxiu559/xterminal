@@ -1,0 +1,32 @@
+{
+  "phase": "application",
+  "realElectronUtility": true,
+  "realPty": true,
+  "controlledStdioToolReaped": true,
+  "preventedEarlyAgentStdinEof": true,
+  "codexInitializeWithoutModel": true,
+  "interruptedRuns": 2,
+  "interruptedPartialMessages": 1,
+  "replayCode": "COMMAND_OUTCOME_UNKNOWN",
+  "activeCount": 0,
+  "canarySurvived": true,
+  "descendantProcessesReaped": 15,
+  "processesBefore": [
+    "35956 35951 35323 Thu Oct 22 15:47:58 2026    ",
+    "35983 35956 35323 Thu Oct 22 15:47:59 2026    ",
+    "36250 35956 36250 Thu Oct 22 15:47:59 2026    ",
+    "36251 35956 35323 Thu Oct 22 15:47:59 2026    ",
+    "36260 36250 36250 Thu Oct 22 15:47:59 2026    ",
+    "36266 35956 36266 Thu Oct 22 15:47:59 2026    ",
+    "36267 35956 35323 Thu Oct 22 15:47:59 2026    ",
+    "36281 36266 36266 Thu Oct 22 15:47:59 2026    ",
+    "36373 36281 36373 Thu Oct 22 15:48:12 2026    ",
+    "36381 36373 36373 Thu Oct 22 15:48:12 2026    ",
+    "36383 36281 36383 Thu Oct 22 15:48:12 2026    ",
+    "36384 36281 36384 Thu Oct 22 15:48:12 2026    ",
+    "36392 36381 36373 Thu Oct 22 15:48:12 2026    ",
+    "35982 35956 35982 Thu Oct 22 15:47:59 2026    ",
+    "36249 35982 36249 Thu Oct 22 15:47:59 2026    "
+  ],
+  "diagnostics": ""
+}

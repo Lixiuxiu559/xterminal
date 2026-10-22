@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "realLocalChild": true,
+  "realProductionGuard": true,
+  "transport": "fixture, no CLI/model",
+  "delayedGuardReady": true,
+  "earlyTurnNotSent": true,
+  "nextExplicitTurnOnly": true,
+  "interruptRpcCalls": 0,
+  "unsafeSameGroupRefused": true,
+  "missingInputFdRefused": true
+}

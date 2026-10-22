@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "mode": "real",
+  "phase": "first",
+  "realModel": true,
+  "hostInstanceId": "f2159eff-3f3d-48a6-8f37-032fc35a86e7",
+  "checks": [
+    "codex: 真实弹窗创建、原生输入、发送、最终回答与渲染通过",
+    "codex: 真实工具执行仅写临时项目指定文件，内容核验与工具UI通过",
+    "claude: 真实弹窗创建、原生输入、发送、最终回答与渲染通过",
+    "claude: 真实工具执行仅写临时项目指定文件，内容核验与工具UI通过",
+    "切换引擎会话后草稿保留且未发送"
+  ],
+  "at": "2026-10-22T07:48:16.932Z",
+  "database": {
+    "contextsSaved": true,
+    "sameNativeContextAfterRestart": false,
+    "noActiveRunsAfterExit": true,
+    "runs": [
+      {
+        "status": "completed",
+        "count": 4
+      }
+    ],
+    "receipts": [
+      {
+        "state": "completed",
+        "count": 4
+      }
+    ]
+  }
+}

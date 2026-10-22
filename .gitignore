@@ -1,0 +1,30 @@
+# Dependencies and build outputs
+node_modules/
+dist/
+release/
+.smoke/
+.codegraph/
+coverage/
+*.tsbuildinfo
+*.log
+
+# Local runtime state and credentials
+.env
+.env.*
+!.env.example
+*.sqlite
+*.sqlite-*
+*.sqlite3
+*.sqlite3-*
+*.key
+*.pem
+
+# OS/editor files
+.DS_Store
+._*
+.idea/
+.vscode/
+
+# Transient failure captures; successful validation reports/screenshots are tracked
+/docs/validation/**/*-failure.png
+/docs/validation/**/keyboard-diagnostic.json

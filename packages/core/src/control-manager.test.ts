@@ -1,0 +1,30 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { ControlManager } from './control-manager.ts';
+test('控制权释放/过期后保留代际，旧端延迟输入不能在再次接管后复活', () => {
+  let time = 100; const manager = new ControlManager('host', () => {}, () => time);
+  const first = manager.acquire('s', 'desktop');
+  manager.release('s', 'desktop', first);
+  const second = manager.acquire('s', 'desktop');
+  assert.ok(second.generation > first.generation);
+  assert.throws(() => manager.assert('s', 'desktop', first), /变化/);
+  time = second.expiresAtMs; manager.expire();
+  assert.equal(manager.get('s'), null);
+  const third = manager.acquire('s', 'device:phone');
+  assert.ok(third.generation > second.generation);
+  assert.throws(() => manager.assert('s', 'desktop', second));
+  manager.assert('s', 'device:phone', third);
+});
+test('心跳只能续租自己的有效代际，撤销设备即时失效但不触碰任务', () => {
+  let changed = 0; let time = 1;
+  const manager = new ControlManager('host', () => changed++, () => time);
+  const phone = manager.acquire('s', 'device:p');
+  time += 5000;
+  const renewed = manager.renew('s', 'device:p', phone);
+  assert.equal(renewed.generation, phone.generation);
+  assert.ok(renewed.expiresAtMs > phone.expiresAtMs);
+  assert.throws(() => manager.renew('s', 'desktop', phone));
+  manager.revoke('device:p');
+  assert.equal(manager.get('s'), null); assert.equal(changed, 2);
+  assert.throws(() => manager.assert('s', 'device:p', phone));
+});
