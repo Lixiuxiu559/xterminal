@@ -1,6 +1,6 @@
 import type { EngineKind, TerminalOutput, TerminalSnapshot, ControlLease, ControlStamp } from './index.ts';
 import type { AgentAnswer, AgentSnapshot, AgentModel } from './agent.ts';
-import type { LanState } from './lan.ts';
+import type { LanState, LanMode } from './lan.ts';
 
 export interface ProjectRecord {
   id: string; name: string; rootPath: string; createdAt: string; updatedAt: string;
@@ -28,7 +28,7 @@ export interface RequestMap {
   'control.renew': { params: { sessionId: string }; result: ControlLease };
   'control.release': { params: { sessionId: string }; result: null };
   'lan.status': { params: Record<string, never>; result: LanState };
-  'lan.enable': { params: { address: string }; result: LanState };
+  'lan.enable': { params: { address: string; mode?: LanMode }; result: LanState };
   'lan.disable': { params: Record<string, never>; result: LanState };
   'lan.rotateCode': { params: Record<string, never>; result: LanState };
   'lan.approve': { params: { ticket: string }; result: LanState };

@@ -1,0 +1,7 @@
+{
+  "passed": false,
+  "phase": "first",
+  "error": "AssertionError [ERR_ASSERTION]: codex unavailable\n\nfalse !== true\n",
+  "realModel": false,
+  "scope": "Electron system PATH + temporary HOME/nvm; before core fix"
+}

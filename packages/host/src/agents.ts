@@ -2,25 +2,29 @@ import { randomUUID } from 'node:crypto';
 import { realpathSync } from 'node:fs';
 import type { Store } from '../../storage/src/store.ts';
 import type { AppSession, EngineAvailability, SessionRecord } from '../../protocol/src/desktop.ts';
-import type { AgentAnswer, AgentEngineEvent, AgentInteraction, AgentMessage, AgentRuntime, AgentRuntimeOptions, AgentSnapshot, AgentTool } from '../../protocol/src/agent.ts';
+import type { AgentAnswer, AgentEngineEvent, AgentInteraction, AgentMessage, AgentRuntime, AgentRuntimeOptions, AgentSnapshot, AgentTool, AgentModel } from '../../protocol/src/agent.ts';
 import type { AgentEngineKind } from '../../protocol/src/index.ts';
 import { CodexRuntime, detectCodex, listCodexModels } from '../../engines/codex/src/runtime.ts';
 import { ClaudeRuntime, detectClaude } from '../../engines/claude/src/runtime.ts';
 import { HostError } from './validation.ts';
+import { isolatedEngineTargets, missingEngineReason, resolveEngineTargets, type EngineTarget, type EngineTargets } from './engine-environment.ts';
 
 type State = Pick<AppSession, 'state' | 'runId' | 'error'>;
 export interface AgentServices {
   createRuntime: (engine: AgentEngineKind, options: AgentRuntimeOptions) => AgentRuntime;
-  detect: () => Promise<EngineAvailability[]>;
+  locate: () => Promise<EngineTargets>;
+  detect: (targets: EngineTargets) => Promise<EngineAvailability[]>;
+  listModels: (target: EngineTarget) => Promise<AgentModel[]>;
 }
 interface Options {
-  store: Store; instanceId: string;
+  store: Store; instanceId: string; shell?: string;
   state: (sessionId: string, value: State) => void;
   catalog: () => void; emit: (snapshot: AgentSnapshot) => void;
 }
 export class AgentSessions {
   private readonly options: Options;
   private readonly services: AgentServices;
+  private targets = isolatedEngineTargets();
   private availability: EngineAvailability[] = ['claude', 'codex'].map(engine => ({ engine: engine as AgentEngineKind, available: false, version: null, reason: '正在检测本机引擎' }));
   private readonly runtimes = new Map<string, { token: string; runtime: AgentRuntime }>();
   private readonly active = new Map<string, { runId: string; root: string }>();
@@ -37,11 +41,24 @@ export class AgentSessions {
   constructor(options: Options, services: Partial<AgentServices> = {}) {
     this.options = options;
     this.services = {
-      createRuntime: services.createRuntime ?? ((engine, options) => engine === 'codex' ? new CodexRuntime(options) : new ClaudeRuntime(options)),
-      detect: services.detect ?? (() => Promise.all([detectClaude(), detectCodex()])),
+      createRuntime: services.createRuntime ?? ((engine, options) => {
+        if (!options.executablePath) throw new HostError('ENGINE_UNAVAILABLE', '引擎路径未解析，请明确退出并重启应用。');
+        return engine === 'codex' ? new CodexRuntime(options) : new ClaudeRuntime(options);
+      }),
+      // Fixture detectors never implicitly execute the user's login shell.
+      locate: services.locate ?? (services.detect ? async () => isolatedEngineTargets() : () => resolveEngineTargets({ shell: options.shell })),
+      detect: services.detect ?? (targets => Promise.all((['claude', 'codex'] as const).map(engine => {
+        const target = targets[engine];
+        return target.path ? (engine === 'claude' ? detectClaude(target.path, { env: target.env }) : detectCodex(target.path, { env: target.env }))
+          : Promise.resolve({ engine, available: false, version: null, reason: missingEngineReason(engine, target) });
+      }))),
+      listModels: services.listModels ?? (target => {
+        if (!target.path) throw new HostError('ENGINE_UNAVAILABLE', missingEngineReason('codex', target));
+        return listCodexModels(target.path, target.env);
+      }),
     };
   }
-  async initialize(): Promise<void> { this.availability = await this.services.detect(); }
+  async initialize(): Promise<void> { this.targets = await this.services.locate(); this.availability = await this.services.detect(this.targets); }
   capabilities(): EngineAvailability[] { return this.availability.map(item => ({ ...item })); }
   private record(id: string): SessionRecord {
     const session = this.options.store.getSession(id);
@@ -80,7 +97,11 @@ export class AgentSessions {
     this.options.catalog();
     if (run) void this.runtimes.get(id)?.runtime.interrupt(run.runId).catch(() => {});
   }
-  models() { return listCodexModels(); }
+  models() {
+    const capability = this.availability.find(item => item.engine === 'codex');
+    if (!capability?.available) throw new HostError('ENGINE_UNAVAILABLE', capability?.reason ?? 'Codex 不可用');
+    return this.services.listModels(this.targets.codex);
+  }
   start(id: string, text: string, commandId: string, model?: string, principalId = 'desktop'): void {
     const record = this.record(id);
     if (this.options.store.agentReceipt(id, commandId, text, model, principalId)) return;
@@ -102,7 +123,9 @@ export class AgentSessions {
       let handle = this.runtimes.get(id);
       if (!handle) {
         const token = randomUUID();
+        const target = this.targets[record.engine as AgentEngineKind];
         const runtime = this.services.createRuntime(record.engine as AgentEngineKind, { cwd: root, nativeContextId: this.options.store.getEngineContext(id),
+          executablePath: target.path ?? undefined, env: { ...target.env },
           onEvent: event => { if (this.runtimes.get(id)?.token === token) this.event(id, event); },
         });
         handle = { token, runtime }; this.runtimes.set(id, handle);

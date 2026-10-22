@@ -4,4 +4,4 @@ import './style.css';
 import { App } from './App';
 import { BrowserRoot } from './BrowserRoot';
 
-createRoot(document.getElementById('root')!).render(<React.StrictMode>{!window.xterminal && location.protocol === 'https:' ? <BrowserRoot /> : <App />}</React.StrictMode>);
+createRoot(document.getElementById('root')!).render(<React.StrictMode>{!window.xterminal && ['http:', 'https:'].includes(location.protocol) ? <BrowserRoot /> : <App />}</React.StrictMode>);

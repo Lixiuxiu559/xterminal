@@ -1,4 +1,5 @@
-import { createServer, type Server } from 'node:https';
+import { createServer as createHttpsServer } from 'node:https';
+import { createServer as createHttpServer, type Server } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Duplex } from 'node:stream';
 import { isIPv4 } from 'node:net';
@@ -16,8 +17,7 @@ const DEVICE_TTL = 7 * 86400000;
 const RATE_WINDOW = 10 * 60000;
 const MAX_MESSAGE = 1024 * 1024;
 const MAX_COMMAND = 64 * 1024;
-const DEVICE_COOKIE = '__Host-xterminal-device';
-const PAIR_COOKIE = '__Host-xterminal-pairing';
+
 const ALLOWED_METHODS = new Set([
   'bootstrap', 'session.create', 'session.rename', 'shell.start', 'shell.input', 'shell.resize', 'shell.snapshot', 'shell.terminate',
   'agent.snapshot', 'agent.turn.start', 'agent.turn.stop', 'agent.respond', 'engine.models', 'control.acquire', 'control.renew', 'control.release',
@@ -75,10 +75,14 @@ export class LanGateway implements LanGatewayApi {
       throw new Error('LAN 只能绑定显式 RFC1918 私有 IPv4 地址');
     }
     if (options.port !== undefined && (!Number.isInteger(options.port) || options.port < 0 || options.port > 65535)) throw new Error('LAN 端口无效');
-    this.#options = options;
+    if (options.mode !== undefined && options.mode !== 'http' && options.mode !== 'https') throw new Error('LAN 模式无效');
+    this.#options = { ...options, mode: options.mode ?? 'https' };
     this.#repository = options.repository ?? new FileDeviceRepository(options.dataPath);
     this.#now = testDependencies.now ?? Date.now;
   }
+  get #deviceCookie(): string { return this.#options.mode === 'http' ? 'xterminal-http-device' : '__Host-xterminal-device'; }
+  get #pairCookie(): string { return this.#options.mode === 'http' ? 'xterminal-http-pairing' : '__Host-xterminal-pairing'; }
+  get #secureCookie(): string { return this.#options.mode === 'https' ? 'Secure; ' : ''; }
   get address(): LanAddress | null { return this.#address ? { ...this.#address } : null; }
   get caCertificatePath(): string | null { return this.#caCertificatePath; }
 
@@ -94,13 +98,14 @@ export class LanGateway implements LanGatewayApi {
   async #start(): Promise<LanStarted> {
     try {
       await this.#loadDevices();
-      const certificates = await ensureCertificates(this.#options.dataPath, this.#options.bindAddress);
+      const certificates = this.#options.mode === 'https' ? await ensureCertificates(this.#options.dataPath, this.#options.bindAddress) : null;
       if (this.#stopRequested) throw new Error('LAN 启动已取消');
-      this.#caCertificatePath = certificates.caCertificatePath;
-      const server = createServer({ key: certificates.key, cert: certificates.cert, minVersion: 'TLSv1.2', maxHeaderSize: 16384 }, (request, response) => {
+      this.#caCertificatePath = certificates?.caCertificatePath ?? null;
+      const handler = (request: IncomingMessage, response: ServerResponse) => {
         request.on('error', () => {}); response.on('error', () => {});
         void this.#http(request, response).catch((error: unknown) => this.#httpError(response, error));
-      });
+      };
+      const server = certificates ? createHttpsServer({ key: certificates.key, cert: certificates.cert, minVersion: 'TLSv1.2', maxHeaderSize: 16384 }, handler) : createHttpServer({ maxHeaderSize: 16384 }, handler);
       this.#server = server;
       server.requestTimeout = 15000; server.headersTimeout = 10000; server.keepAliveTimeout = 5000;
       server.on('clientError', (_error, socket) => socket.destroy());
@@ -115,12 +120,12 @@ export class LanGateway implements LanGatewayApi {
       });
       const bound = server.address();
       if (!bound || typeof bound === 'string') throw new Error('LAN 监听失败');
-      this.#address = { bindAddress: this.#options.bindAddress, port: bound.port, origin: new URL(`https://${this.#options.bindAddress}:${bound.port}`).origin };
+      this.#address = { bindAddress: this.#options.bindAddress, port: bound.port, mode: this.#options.mode!, origin: new URL(`${this.#options.mode}://${this.#options.bindAddress}:${bound.port}`).origin };
       if (this.#stopRequested) throw new Error('LAN 启动已取消');
       server.on('error', () => { void this.stop().catch(() => {}); });
       this.#sweeper = setInterval(() => this.#sweep(), 1000);
       this.#sweeper.unref();
-      return { address: this.address!, caCertificatePath: certificates.caCertificatePath, pairingCode: this.rotatePairingCode() };
+      return { address: this.address!, caCertificatePath: this.#caCertificatePath, pairingCode: this.rotatePairingCode() };
     } catch (error) {
       this.#wss?.close(); this.#wss = undefined;
       if (this.#server?.listening) await new Promise<void>((resolveClose) => this.#server!.close(() => resolveClose()));
@@ -248,13 +253,13 @@ export class LanGateway implements LanGatewayApi {
     return device;
   }
   #authenticate(request: IncomingMessage): DeviceRecord | null {
-    const cookie = this.#cookie(request, DEVICE_COOKIE);
+    const cookie = this.#cookie(request, this.#deviceCookie);
     if (!cookie || !/^[A-Za-z0-9_-]{43}$/.test(cookie)) return null;
     const id = this.#tokenIndex.get(hash(cookie));
     return id ? this.#authorizedDevice(id) : null;
   }
   #authenticationFailure(request: IncomingMessage): HttpError {
-    const cookie = this.#cookie(request, DEVICE_COOKIE);
+    const cookie = this.#cookie(request, this.#deviceCookie);
     if (cookie && /^[A-Za-z0-9_-]{43}$/.test(cookie)) {
       const tokenHash = hash(cookie);
       const device = [...this.#devices.values()].find((candidate) => candidate.tokenHash === tokenHash);
@@ -388,7 +393,7 @@ export class LanGateway implements LanGatewayApi {
     const ticket = secret(); const applicantSecret = secret(); const now = this.#now();
     const pending: Ticket = { ticket, deviceName: body.deviceName.trim(), requestedAtMs: now, expiresAtMs: now + PAIR_TTL, secretHash: hash(applicantSecret), status: 'pending' };
     this.#tickets.set(ticket, pending);
-    response.setHeader('Set-Cookie', `${PAIR_COOKIE}=${applicantSecret}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=120`);
+    response.setHeader('Set-Cookie', `${this.#pairCookie}=${applicantSecret}; Path=/; ${this.#secureCookie}HttpOnly; SameSite=Strict; Max-Age=120`);
     try { this.#options.onPairingRequest({ ticket, deviceName: pending.deviceName, requestedAtMs: now, expiresAtMs: pending.expiresAtMs }); }
     catch { this.#tickets.delete(ticket); throw new HttpError(500, 'INTERNAL_ERROR', '配对确认暂不可用'); }
     this.#json(response, 202, { ticket, expiresAtMs: pending.expiresAtMs, status: 'pending' });
@@ -396,7 +401,7 @@ export class LanGateway implements LanGatewayApi {
   async #claim(request: IncomingMessage, response: ServerResponse, ticket: string): Promise<void> {
     const pending = this.#tickets.get(ticket);
     if (!pending || pending.expiresAtMs <= this.#now()) { this.#tickets.delete(ticket); throw new HttpError(410, 'PAIRING_EXPIRED', '配对申请已过期'); }
-    const applicantSecret = this.#cookie(request, PAIR_COOKIE);
+    const applicantSecret = this.#cookie(request, this.#pairCookie);
     if (!applicantSecret || applicantSecret.length > 128 || !equalHash(hash(applicantSecret), pending.secretHash)) throw new HttpError(403, 'FORBIDDEN', '配对申请不属于此客户端');
     if (pending.status !== 'approved') { this.#json(response, pending.status === 'claiming' ? 409 : 200, { status: pending.status }); return; }
     if (this.#devices.size >= 10000) throw new HttpError(429, 'RATE_LIMITED', '设备授权数量超过上限');
@@ -412,8 +417,8 @@ export class LanGateway implements LanGatewayApi {
     }
     this.#tokenIndex.set(device.tokenHash, device.id); this.#tickets.delete(ticket);
     response.setHeader('Set-Cookie', [
-      `${DEVICE_COOKIE}=${token}; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=${DEVICE_TTL / 1000}`,
-      `${PAIR_COOKIE}=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0`,
+      `${this.#deviceCookie}=${token}; Path=/; ${this.#secureCookie}HttpOnly; SameSite=Strict; Max-Age=${DEVICE_TTL / 1000}`,
+      `${this.#pairCookie}=; Path=/; ${this.#secureCookie}HttpOnly; SameSite=Strict; Max-Age=0`,
     ]);
     this.#json(response, 200, { status: 'approved', device: summary(device), principalId: principal(device) });
   }

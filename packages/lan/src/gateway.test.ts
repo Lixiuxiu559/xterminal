@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import https from 'node:https';
+import http from 'node:http';
 import type { IncomingHttpHeaders } from 'node:http';
 import { checkServerIdentity } from 'node:tls';
 import { mkdtemp, mkdir, writeFile, readFile, rm, stat, symlink } from 'node:fs/promises';
@@ -12,7 +13,7 @@ import { LanGateway, isPrivateIPv4 } from './gateway.ts';
 import type { PairingRequest } from './types.ts';
 
 interface Response { status: number; body: any; headers: IncomingHttpHeaders }
-async function setup() {
+async function setup(mode: 'http' | 'https' = 'https') {
   const directory = await mkdtemp(join(tmpdir(), 'xterminal-lan-'));
   const dataPath = join(directory, 'data'); const uiPath = join(directory, 'ui');
   await mkdir(uiPath); await writeFile(join(uiPath, 'index.html'), '<!doctype html><title>Pair device</title>');
@@ -20,15 +21,15 @@ async function setup() {
   await symlink(join(directory, 'private.txt'), join(uiPath, 'escape.txt'));
   let now = Date.now();
   const requests: PairingRequest[] = []; const revoked: string[] = []; const executions: Array<{ principalId: string; request: unknown }> = [];
-  const gateway = new LanGateway({ dataPath, uiPath, bindAddress: '127.0.0.1',
+  const gateway = new LanGateway({ dataPath, uiPath, bindAddress: '127.0.0.1', mode,
     execute: async (principalId, request) => { executions.push({ principalId, request }); return { id: (request as { id: string }).id, ok: true, result: { accepted: true } }; },
     bootstrap: (principalId) => ({ principalId, projects: [], sessions: [] }),
     onPairingRequest: (request) => requests.push(request), onDeviceRevoked: (id) => revoked.push(id),
   }, { allowLoopback: true, now: () => now });
-  const started = await gateway.start(); const ca = await readFile(started.caCertificatePath);
+  const started = await gateway.start(); const ca = started.caCertificatePath ? await readFile(started.caCertificatePath) : undefined;
   const request = (path: string, options: { method?: string; body?: unknown; cookie?: string; origin?: string | null; host?: string; site?: string; trust?: boolean; verifyBindAddress?: boolean } = {}): Promise<Response> => new Promise((resolveResponse, reject) => {
     const body = options.body === undefined ? undefined : JSON.stringify(options.body);
-    const req = https.request(new URL(path, started.address.origin), {
+    const req = (mode === 'http' ? http : https).request(new URL(path, started.address.origin), {
       ca: options.trust === false ? undefined : ca, method: options.method ?? 'GET', agent: false,
       ...(options.verifyBindAddress ? { checkServerIdentity: (_host: string, certificate: Parameters<typeof checkServerIdentity>[1]) => checkServerIdentity('127.0.0.1', certificate) } : {}),
       headers: { ...(options.origin !== null ? { Origin: options.origin ?? started.address.origin } : {}),
@@ -49,15 +50,15 @@ async function setup() {
     const code = gateway.rotatePairingCode();
     const submitted = await request('/api/v1/pairing/requests', { method: 'POST', body: { code: code.code, deviceName: '测试手机' } });
     assert.equal(submitted.status, 202);
-    const applicant = cookieFrom(submitted, '__Host-xterminal-pairing');
+    const applicant = cookieFrom(submitted, mode === 'http' ? 'xterminal-http-pairing' : '__Host-xterminal-pairing');
     const ticket = submitted.body.ticket as string;
     await gateway.approvePairing(ticket);
     const claimed = await request(`/api/v1/pairing/requests/${ticket}`, { cookie: applicant });
     assert.equal(claimed.status, 200);
-    return { ticket, applicant, cookie: cookieFrom(claimed, '__Host-xterminal-device'), claimed };
+    return { ticket, applicant, cookie: cookieFrom(claimed, mode === 'http' ? 'xterminal-http-device' : '__Host-xterminal-device'), claimed };
   }
   const connect = (cookie?: string, origin = started.address.origin): Promise<WebSocket> => new Promise((resolveSocket, reject) => {
-    const socket = new WebSocket(started.address.origin.replace('https:', 'wss:') + '/api/v1/stream', { ca, origin, headers: cookie ? { Cookie: cookie } : {} });
+    const socket = new WebSocket(started.address.origin.replace(/^http/, 'ws') + '/api/v1/stream', { ca, origin, headers: cookie ? { Cookie: cookie } : {} });
     socket.once('open', () => resolveSocket(socket)); socket.once('error', reject);
   });
   return { gateway, directory, dataPath, started, requests, revoked, executions, request, cookieFrom, pair, connect,
@@ -217,7 +218,7 @@ test('catalog为每个连接覆写设备身份，本机lan.changed绝不进入�
 
 test('WSS升级鉴权拒绝返回稳定JSON错误码', async () => {
   const ctx = await setup();
-  const ca = await readFile(ctx.started.caCertificatePath);
+  const ca = await readFile(ctx.started.caCertificatePath!);
   const rejectedUpgrade = (cookie?: string): Promise<{ status: number; body: any; code: string | undefined }> => new Promise((resolveRejected, reject) => {
     const client = new WebSocket(ctx.started.address.origin.replace('https:', 'wss:') + '/api/v1/stream', { ca, origin: ctx.started.address.origin, headers: cookie ? { Cookie: cookie } : {} });
     client.once('error', reject);
@@ -269,11 +270,42 @@ test('关闭访问撤销已有授权，重新开启不复活旧Cookie', async ()
     assert.deepEqual(ctx.revoked, [paired.claimed.body.principalId]);
     const devices = await ctx.gateway.listDevices(); assert.notEqual(devices[0]!.revokedAtMs, null);
     const restarted = await ctx.gateway.start();
-    const ca = await readFile(restarted.caCertificatePath);
+    const ca = await readFile(restarted.caCertificatePath!);
     const status = await new Promise<number>((resolveStatus, reject) => {
       const request = https.get(restarted.address.origin + '/api/v1/bootstrap', { ca, agent: false, headers: { Cookie: paired.cookie } }, (response) => { response.resume(); resolveStatus(response.statusCode!); });
       request.once('error', reject);
     });
     assert.equal(status, 401);
   } finally { await ctx.cleanup(); }
+});
+
+for (const mode of ['http', 'https'] as const) test(`${mode}: mode-specific cookies, pairing, origin/CSRF, revocation and shutdown remain enforced`, async () => {
+  const ctx = await setup(mode);
+  let socket: WebSocket | undefined;
+  try {
+    assert.equal(ctx.started.address.mode, mode);
+    assert.equal(ctx.started.address.origin.startsWith(mode + ':'), true);
+    if (mode === 'http') { assert.equal(ctx.started.caCertificatePath, null); await assert.rejects(stat(join(ctx.dataPath, 'certificates'))); }
+    assert.equal((await ctx.request('/api/v1/bootstrap')).status, 401);
+    assert.equal((await ctx.request('/api/v1/pairing/requests', { method: 'POST', origin: null, body: {} })).status, 403);
+    assert.equal((await ctx.request('/', { origin: ctx.started.address.origin.replace(mode + ':', mode === 'http' ? 'https:' : 'http:') })).status, 403);
+    assert.equal((await ctx.request('/', { host: 'evil.invalid', verifyBindAddress: true })).status, 403);
+    const paired = await ctx.pair();
+    const cookies = paired.claimed.headers['set-cookie']!;
+    for (const cookie of cookies) {
+      assert.equal(/; Secure(?:;|$)/.test(cookie), mode === 'https');
+      assert.match(cookie, /HttpOnly/); assert.match(cookie, /SameSite=Strict/); assert.match(cookie, /Path=\//); assert.doesNotMatch(cookie, /Domain=/);
+    }
+    assert.equal((await ctx.request('/api/v1/bootstrap', { cookie: paired.cookie })).status, 200);
+    const wrongName = paired.cookie.replace(mode === 'http' ? 'xterminal-http-device' : '__Host-xterminal-device', mode === 'http' ? '__Host-xterminal-device' : 'xterminal-http-device');
+    assert.equal((await ctx.request('/api/v1/bootstrap', { cookie: wrongName })).status, 401);
+    socket = await ctx.connect(paired.cookie);
+    const device = (await ctx.gateway.listDevices()).find(d => d.revokedAtMs === null)!;
+    const didClose = closed(socket);
+    await ctx.gateway.revokeDevice(device.id); await didClose;
+    assert.equal((await ctx.request('/api/v1/bootstrap', { cookie: paired.cookie })).status, 401);
+    const again = await ctx.pair(); socket = await ctx.connect(again.cookie); const stopped = closed(socket);
+    await ctx.gateway.stop(); await stopped;
+    assert.ok((await ctx.gateway.listDevices()).every(d => d.revokedAtMs !== null));
+  } finally { socket?.terminate(); await ctx.cleanup(); }
 });

@@ -5,7 +5,9 @@
 ## 1. 传输与身份
 
 - 桌面：可信 preload → 主进程 → Host，领域请求与事件通过白名单 IPC / MessagePort。
-- 手机：同源 HTTPS REST 获取快照，WSS 发送命令、接收回执和流式事件。
+- 手机：同源HTTP/HTTPS REST获取快照，对应WS/WSS发送命令、接收回执和流式事件。模式由电脑明确选择，HTTP仅在接受明文风险的可信局域网使用；HTTPS失败不自动降级。
+- `lan.enable` 接收 `{ address, mode?: 'http' | 'https' }`，省略mode沿用HTTPS；新UI默认选择HTTP但共享默认关闭。`LanState.mode`为当前模式，关闭时null。活动模式不能热切换，先关闭、撤销授权和连接，再重新开启配对。
+- HTTPS Cookie保持__Host前缀与Secure；HTTP使用独立非前缀名称且去掉Secure，两者保留HttpOnly、SameSite=Strict、Path=/与host-only作用域。来源、Host、CSRF、设备权限及控制租约要求不因HTTP而变化。
 - 每个连接在 Host 绑定 authenticated principal、deviceId 和 connectionId。客户端提交的 actorId 不作为身份来源。
 - 每次 Host 启动生成 hostInstanceId；旧连接、控制权和 PTY epoch 均不能跨实例复用。
 - `protocolVersion` 必须匹配；不兼容返回 UPGRADE_REQUIRED，不猜测字段。
@@ -22,7 +24,7 @@
 | GET /api/v1/sessions/:id/snapshot | 消息投影、状态、待处理项、lastSeq | 校验项目范围 |
 | GET /api/v1/sessions/:id/events?afterSeq=N | 分页补齐领域事件 | seq 有范围与分页上限 |
 | GET /api/v1/sessions/:id/terminal-snapshot | 终端 epoch、尺寸、解析 watermark | 仅 Shell，有限大小 |
-| WSS /api/v1/stream | 命令、订阅、事件与终端帧 | Cookie、Origin、Host 和大小校验 |
+| WS/WSS /api/v1/stream | 命令、订阅、事件与终端帧 | Cookie、Origin、Host 和大小校验 |
 
 桌面独享命令：project.add、project.selectDirectory、device.approve、device.revoke、lan.enable、lan.disable、certificate.manage。手机请求这些命令一律 FORBIDDEN，不能靠隐藏按钮充当权限控制。
 

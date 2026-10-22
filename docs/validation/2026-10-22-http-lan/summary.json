@@ -1,0 +1,77 @@
+{
+  "functionalTests": 97,
+  "lanTests": 18,
+  "failedTests": 0,
+  "typecheck": true,
+  "build": true,
+  "storage": true,
+  "browser": {
+    "passed": true,
+    "context": {
+      "secure": false,
+      "randomUUID": "undefined",
+      "getRandomValues": "function"
+    },
+    "mode": "http",
+    "modelCalls": false,
+    "checks": [
+      "private IPv4 nonsecure context",
+      "HTTP BrowserRoot entry and warning",
+      "HTTP cookie pairing without CA",
+      "WS authenticated bootstrap with UUID fallback",
+      "HttpOnly cookie hidden",
+      "shutdown revokes access"
+    ]
+  },
+  "reports": {
+    "desktop": [
+      {
+        "phase": "first",
+        "passed": true,
+        "realModel": null
+      },
+      {
+        "phase": "restart",
+        "passed": true,
+        "realModel": null
+      }
+    ],
+    "engine-regression": [
+      {
+        "phase": "crash-restart",
+        "passed": true,
+        "realModel": false
+      },
+      {
+        "phase": "crash",
+        "passed": true,
+        "realModel": false
+      },
+      {
+        "phase": "first",
+        "passed": true,
+        "realModel": false
+      },
+      {
+        "phase": "restart",
+        "passed": true,
+        "realModel": false
+      }
+    ],
+    "packaged-desktop": [
+      {
+        "phase": "first",
+        "passed": true,
+        "realModel": null
+      },
+      {
+        "phase": "restart",
+        "passed": true,
+        "realModel": null
+      }
+    ]
+  },
+  "package": "release/http-lan-fixed/mac-arm64/XTerminal.app",
+  "realModelCalls": false,
+  "review": { "completed": true, "correctnessConfirmed": 0, "standardsViolations": 0, "specDeviations": 0, "blockingIssues": 0, "execution": "independent read-only context, sequential three-axis review" }
+}

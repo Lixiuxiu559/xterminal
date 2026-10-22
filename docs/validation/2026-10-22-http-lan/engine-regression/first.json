@@ -1,0 +1,48 @@
+{
+  "passed": true,
+  "mode": "fixture",
+  "phase": "first",
+  "realModel": false,
+  "hostInstanceId": "00cf5711-6a7e-42c4-ada6-632ec9ee64c3",
+  "checks": [
+    "codex: 真实弹窗创建、原生输入、发送、最终回答与渲染通过",
+    "codex: 权限卡片允许本次/拒绝均经原生请求完成",
+    "codex: 两题完整性、选项和自由回答经UI提交通过",
+    "codex: 停止等待原生终态，未把受理响应当结束",
+    "claude: 真实弹窗创建、原生输入、发送、最终回答与渲染通过",
+    "claude: 权限卡片允许本次/拒绝均经原生请求完成",
+    "claude: 两题完整性、选项和自由回答经UI提交通过",
+    "Claude活跃轮次关窗后恢复同一run，无新发送",
+    "claude: 停止等待原生终态，未把受理响应当结束",
+    "切换引擎会话后草稿保留且未发送"
+  ],
+  "at": "2026-10-22T09:00:32.181Z",
+  "environment": {
+    "restrictedPath": true,
+    "packagedEntry": false,
+    "isolatedHome": true,
+    "fixtureCliUsesEnvNode": true
+  },
+  "database": {
+    "contextsSaved": true,
+    "sameNativeContextAfterRestart": false,
+    "noActiveRunsAfterExit": true,
+    "runs": [
+      {
+        "status": "completed",
+        "count": 8
+      },
+      {
+        "status": "interrupted",
+        "count": 2
+      }
+    ],
+    "receipts": [
+      {
+        "state": "completed",
+        "count": 10
+      }
+    ]
+  },
+  "fixtureProcesses": 7
+}

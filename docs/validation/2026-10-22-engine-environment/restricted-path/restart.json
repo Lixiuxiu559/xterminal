@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "mode": "fixture",
+  "phase": "restart",
+  "realModel": false,
+  "hostInstanceId": "b104bbed-1229-42f8-9f91-db30ede0b317",
+  "checks": [
+    "codex: 重启历史未重复、未自动发送；明确续聊恢复原生上下文标记",
+    "claude: 重启历史未重复、未自动发送；明确续聊恢复原生上下文标记"
+  ],
+  "at": "2026-10-22T08:28:48.481Z",
+  "environment": {
+    "restrictedPath": true,
+    "packagedEntry": false,
+    "isolatedHome": true,
+    "fixtureCliUsesEnvNode": true
+  },
+  "database": {
+    "contextsSaved": true,
+    "sameNativeContextAfterRestart": true,
+    "noActiveRunsAfterExit": true,
+    "runs": [
+      {
+        "status": "completed",
+        "count": 10
+      },
+      {
+        "status": "interrupted",
+        "count": 2
+      }
+    ],
+    "receipts": [
+      {
+        "state": "completed",
+        "count": 12
+      }
+    ]
+  },
+  "fixtureProcesses": 13
+}

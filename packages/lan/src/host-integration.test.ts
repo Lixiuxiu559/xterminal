@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import https from 'node:https';
+import httpClient from 'node:http';
 import { DatabaseSync } from 'node:sqlite';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -15,7 +16,7 @@ import type { LanState } from '../../protocol/src/lan.ts';
 import type { ControlLease } from '../../protocol/src/index.ts';
 import type { ShellRuntime } from '../../engines/shell/src/runtime.ts';
 
-test('真实TLS/WSS → Host → SQLite：配对、接管、旧代际拒绝与撤销不终止任务', { timeout: 15000 }, async () => {
+for (const mode of ['http', 'https'] as const) test(mode + ': Host/SQLite pairing, control and revocation preserve local tasks', { timeout: 15000 }, async () => {
   const directory = await mkdtemp(join(tmpdir(), 'xterminal-lan-host-'));
   const dbPath = join(directory, 'state.sqlite'); const schemaPath = resolve('docs/architecture/schema.sql');
   const store = new Store(dbPath, schemaPath, path => new DatabaseSync(path));
@@ -41,11 +42,11 @@ test('真实TLS/WSS → Host → SQLite：配对、接管、旧代际拒绝与�
     await local('shell.start', { sessionId: session.id, cols: 80, rows: 24 }, session.control!);
     const denied = await host.handle({ id: 'deny', method: 'lan.enable', params: { address: '127.0.0.1' } }, 'device:forged');
     assert.equal(denied.ok, false); if (!denied.ok) assert.equal(denied.error.code, 'FORBIDDEN');
-    const enabled = await local('lan.enable', { address: '127.0.0.1' }) as LanState;
-    const ca = await readFile(host.publicCertificatePath()!);
+    const enabled = await local('lan.enable', { address: '127.0.0.1', mode }) as LanState;
+    const certificate = host.publicCertificatePath(); const ca = certificate ? await readFile(certificate) : undefined; if(mode === 'http') assert.equal(certificate,null);
     const http = (path: string, method = 'GET', body?: unknown, cookie?: string): Promise<{ status: number; body: any; cookies: string[] }> => new Promise((resolveResponse, reject) => {
       const data = body === undefined ? undefined : JSON.stringify(body);
-      const request = https.request(new URL(path, enabled.origin!), { ca, method, agent: false, headers: { Origin: enabled.origin!, ...(data ? { 'Content-Type': 'application/json' } : {}), ...(cookie ? { Cookie: cookie } : {}) } }, response => {
+      const request = (mode === 'http' ? httpClient : https).request(new URL(path, enabled.origin!), { ca, method, agent: false, headers: { Origin: enabled.origin!, ...(data ? { 'Content-Type': 'application/json' } : {}), ...(cookie ? { Cookie: cookie } : {}) } }, response => {
         let content = ''; response.setEncoding('utf8'); response.on('data', chunk => { content += chunk; });
         response.on('end', () => resolveResponse({ status: response.statusCode!, body: JSON.parse(content), cookies: response.headers['set-cookie'] ?? [] }));
       }); request.once('error', reject); request.end(data);
@@ -54,12 +55,12 @@ test('真实TLS/WSS → Host → SQLite：配对、接管、旧代际拒绝与�
     assert.equal(submitted.status, 202);
     await local('lan.approve', { ticket: submitted.body.ticket });
     const claimed = await http(`/api/v1/pairing/requests/${submitted.body.ticket}`, 'GET', undefined, submitted.cookies[0]!.split(';')[0]);
-    const cookie = claimed.cookies.find(value => value.startsWith('__Host-xterminal-device='))!.split(';')[0]!;
+    const cookie = claimed.cookies.find(value => value.startsWith(mode === 'http' ? 'xterminal-http-device=' : '__Host-xterminal-device='))!.split(';')[0]!;
     const principal = claimed.body.principalId;
     const bootstrap = await http('/api/v1/bootstrap', 'GET', undefined, cookie);
     assert.equal(bootstrap.body.principalId, principal); assert.equal(bootstrap.body.sessions[0].state, 'running');
     assert.equal(store.listDevices().length, 1); assert.equal('tokenHash' in claimed.body.device, false);
-    socket = new WebSocket(enabled.origin!.replace('https:', 'wss:') + '/api/v1/stream', { ca, origin: enabled.origin!, headers: { Cookie: cookie } });
+    socket = new WebSocket(enabled.origin!.replace(/^http/, 'ws') + '/api/v1/stream', { ca, origin: enabled.origin!, headers: { Cookie: cookie } });
     await new Promise<void>((resolveOpen, reject) => { socket!.once('open', resolveOpen); socket!.once('error', reject); });
     const frames: any[] = []; socket.on('message', data => { frames.push(JSON.parse(data.toString())); });
     const rpc = (method: string, params: unknown, control?: ControlLease): Promise<RpcResponse> => new Promise((resolveResponse, reject) => {

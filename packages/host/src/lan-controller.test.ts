@@ -10,7 +10,7 @@ function fixture() {
   let address: LanGatewayApi['address'] = null; let stopped = 0;
   const gateway: LanGatewayApi = {
     get address() { return address; }, caCertificatePath: '/tmp/public-ca.crt',
-    async start() { address = { bindAddress: '192.168.1.2', port: 4444, origin: 'https://192.168.1.2:4444' }; return { address, caCertificatePath: '/tmp/public-ca.crt', pairingCode: { code: '12345678', expiresAtMs: Date.now() + 120000 } }; },
+    async start() { address = { bindAddress: '192.168.1.2', mode: config.mode ?? 'https', port: 4444, origin: `${config.mode ?? 'https'}://192.168.1.2:4444` }; return { address, caCertificatePath: '/tmp/public-ca.crt', pairingCode: { code: '12345678', expiresAtMs: Date.now() + 120000 } }; },
     async stop() { stopped++; address = null; }, rotatePairingCode() { return { code: '87654321', expiresAtMs: Date.now() + 120000 }; },
     async approvePairing() {}, rejectPairing() {}, async revokeDevice(id) { config.onDeviceRevoked(`device:${id}`); },
     async listDevices() { return devices.map(({ tokenHash: _hash, ...device }) => device); }, broadcast() {},
@@ -39,4 +39,28 @@ test('LAN默认关闭、重启撤销旧授权，配对码只在本地开启/刷�
     await f.controller.revoke('old'); assert.deepEqual(f.revoked, ['device:old']);
   } finally { await f.controller.disable(); }
   assert.equal(f.stopped(), 1); assert.equal((await f.controller.status()).enabled, false);
+});
+
+test('mode changes require completed disable; HTTP has no certificate export and omitted mode stays HTTPS', async () => {
+ const f = fixture();
+ try {
+  assert.equal((await f.controller.status()).mode, null);
+  const http = await f.controller.enable('192.168.1.2', 'http');
+  assert.equal(http.mode, 'http'); assert.equal(http.certificateReady, false); assert.equal(f.controller.publicCertificatePath(), null);
+  await assert.rejects(f.controller.enable('192.168.1.2', 'https'), { code: 'LAN_ALREADY_ENABLED' });
+  assert.equal(f.stopped(), 0);
+  await f.controller.disable();
+  assert.equal((await f.controller.status()).mode, null);
+  assert.equal((await f.controller.enable('192.168.1.2')).mode, 'https');
+  assert.equal(f.controller.publicCertificatePath(), '/tmp/public-ca.crt');
+ } finally { await f.controller.disable(); }
+});
+
+test('failed durable revocation retains gateway and blocks a new mode until disable retry succeeds', async () => {
+ let fail = true; let created = 0; let address: LanGatewayApi['address'] = null;
+ const controller = new LanController({ dataPath:'/tmp/test', uiPath:'/tmp/ui', repository:{list:()=>[],upsert:()=>{}}, execute:async()=>({id:'i',ok:true,result:null}),bootstrap:()=>({}),onDeviceRevoked:()=>{},changed:()=>{} }, {interfaces:()=>[{address:'192.168.1.2',name:'test'}],createGateway:options=>{created++;return {get address(){return address;},caCertificatePath:null, async start(){address={bindAddress:options.bindAddress,port:4444,origin:(options.mode ?? 'https')+'://192.168.1.2:4444',mode:options.mode ?? 'https'};return {address,caCertificatePath:null,pairingCode:{code:'12345678',expiresAtMs:Date.now()+120000}};},async stop(){address=null;if(fail)throw Error('persist-failed');},rotatePairingCode(){throw Error('unused');},async approvePairing(){},rejectPairing(){},async revokeDevice(){},async listDevices(){return [];},broadcast(){}};}});
+ await controller.enable('192.168.1.2','http');
+ await assert.rejects(controller.disable(),/persist-failed/);
+ await assert.rejects(controller.enable('192.168.1.2','https'),{code:'LAN_CLEANUP_PENDING'});assert.equal(created,1);
+ fail=false;await controller.disable();await controller.enable('192.168.1.2','https');assert.equal(created,2);await controller.disable();
 });

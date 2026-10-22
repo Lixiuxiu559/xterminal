@@ -1,0 +1,34 @@
+{
+  "baseline": "bb5eca69910d9dec275160522444753480fa5cd7",
+  "coreFixIntegrated": false,
+  "checks": [
+    {
+      "command": "pnpm test:storage",
+      "passed": true
+    },
+    {
+      "command": "pnpm smoke:desktop",
+      "passed": true,
+      "phases": [
+        "first",
+        "restart"
+      ]
+    },
+    {
+      "command": "pnpm smoke:agent-desktop",
+      "passed": true,
+      "realModel": false,
+      "phases": [
+        "first",
+        "restart",
+        "crash",
+        "crash-restart"
+      ]
+    },
+    {
+      "command": "node scripts/smoke-agent-desktop.mjs --restricted-path",
+      "passed": false,
+      "expectedFailure": "codex unavailable before core fix"
+    }
+  ]
+}

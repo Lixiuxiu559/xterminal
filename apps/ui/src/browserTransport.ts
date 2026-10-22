@@ -1,3 +1,4 @@
+import { randomId } from './randomId.ts';
 import type { AppEvent, AppMethod, Bootstrap, DesktopBridge, RequestMap, RpcResponse } from '../../../packages/protocol/src/desktop.ts';
 import type { ControlLease, ControlStamp } from '../../../packages/protocol/src/index.ts';
 
@@ -66,7 +67,9 @@ export class BrowserTransport implements DesktopBridge {
   private async connect(): Promise<void> {
     const generation = ++this.generation;
     const origin = this.options.origin ?? location.origin;
-    const url = new URL('/api/v1/stream', origin); url.protocol = 'wss:';
+    const url = new URL('/api/v1/stream', origin);
+    if (!['http:', 'https:'].includes(url.protocol)) throw new Error('连接协议无效');
+    url.protocol = url.protocol === 'http:' ? 'ws:' : 'wss:';
     return new Promise<void>((resolve, reject) => {
       let opened = false;
       let settled = false;
@@ -147,7 +150,7 @@ export class BrowserTransport implements DesktopBridge {
       if (!lease || lease.expiresAtMs <= Date.now()) return Promise.reject(transportError('CONTROL_REQUIRED', '当前为只读查看，请先接管操作。'));
       control = { hostInstanceId: lease.hostInstanceId, generation: lease.generation };
     }
-    const id = crypto.randomUUID();
+    const id = randomId();
     const data = JSON.stringify({ id, method, params, ...(control ? { control } : {}) });
     const bytes = encoder.encode(data).byteLength;
     if (bytes > MAX_REQUEST_BYTES) return Promise.reject(transportError('PAYLOAD_TOO_LARGE', '本次请求超过 64 KiB，请缩短输入后重试。'));

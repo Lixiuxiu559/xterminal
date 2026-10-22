@@ -30,8 +30,9 @@ export type AgentEngineEvent =
   | { type: 'interaction.resolved'; runId: string; interactionId: string }
   | { type: 'turn.completed'; runId: string; outcome: 'completed' | 'interrupted' | 'failed'; error?: string }
   | { type: 'process.exited'; runId: string | null; error: string };
+export type AgentEnvironment = Record<string, string | undefined>;
 export interface AgentRuntimeOptions {
-  cwd: string; nativeContextId: string | null; executablePath?: string;
+  cwd: string; nativeContextId: string | null; executablePath?: string; env?: AgentEnvironment;
   onEvent: (event: AgentEngineEvent) => void;
 }
 export interface AgentRuntime {

@@ -1,0 +1,47 @@
+{
+  "passed": true,
+  "mode": "fixture",
+  "phase": "crash",
+  "realModel": false,
+  "hostInstanceId": "2d983f7d-9b5d-425e-9077-f9459ee74a34",
+  "checks": [
+    "强杀本应用真实Host后页面离线、写操作禁用，不自动重启或重发"
+  ],
+  "at": "2026-10-22T08:32:43.788Z",
+  "environment": {
+    "restrictedPath": false,
+    "packagedEntry": false,
+    "isolatedHome": true,
+    "fixtureCliUsesEnvNode": false
+  },
+  "database": {
+    "contextsSaved": true,
+    "sameNativeContextAfterRestart": true,
+    "noActiveRunsAfterExit": false,
+    "runs": [
+      {
+        "status": "completed",
+        "count": 10
+      },
+      {
+        "status": "interrupted",
+        "count": 2
+      },
+      {
+        "status": "starting",
+        "count": 1
+      }
+    ],
+    "receipts": [
+      {
+        "state": "completed",
+        "count": 12
+      },
+      {
+        "state": "dispatched",
+        "count": 1
+      }
+    ]
+  },
+  "fixtureProcesses": 18
+}

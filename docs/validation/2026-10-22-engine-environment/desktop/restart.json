@@ -1,0 +1,12 @@
+{
+  "phase": "restart",
+  "hostInstanceId": "8db6f8fa-6254-4572-bb90-0c88b6da19b3",
+  "checks": [
+    "真实 app:// 页面与受限 preload 加载成功，renderer 无 Node require",
+    "重新启动仍保留项目、会话与标题；旧 PTY 未自动启动",
+    "应用收到 Host 完成确认后进入 will-quit；下次启动核验持久化终态"
+  ],
+  "dialogs": [],
+  "passed": true,
+  "at": "2026-10-22T08:29:58.427Z"
+}

@@ -165,3 +165,12 @@ test('late create and renew responses cannot restore a revoked lease', async () 
     for (const sessionId of ['s', 'new']) await assert.rejects(bridge.invoke('shell.start', { sessionId, cols: 80, rows: 24 }), { code: 'CONTROL_REQUIRED' });
   } finally { bridge.dispose(); }
 });
+
+for (const mode of ['http', 'https']) test(mode + ': websocket preserves page scheme and origin', async () => {
+ const socket = new Socket(); let url = '';
+ const bridge = new BrowserTransport(snapshot(), { origin: mode + '://192.168.1.2:7680', createSocket: value => { url = value; return socket as unknown as WebSocket; }, onUnauthorized: () => {}, probe: async () => snapshot() });
+ try {
+ const started = bridge.start(); socket.open(); socket.receive({id:socket.sent.at(-1)!.id,ok:true,result:snapshot()}); await started;
+ assert.equal(url, (mode === 'http' ? 'ws' : 'wss') + '://192.168.1.2:7680/api/v1/stream');
+ } finally {bridge.dispose();}
+});

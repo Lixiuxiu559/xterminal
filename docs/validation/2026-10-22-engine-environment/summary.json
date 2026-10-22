@@ -1,0 +1,173 @@
+{
+  "tests": {
+    "functional": 92,
+    "lan": 15,
+    "failed": 0
+  },
+  "typecheck": true,
+  "build": true,
+  "storage": true,
+  "modelCalls": false,
+  "systemPathModified": false,
+  "packagedApp": "release/engine-environment-fixed/mac-arm64/XTerminal.app",
+  "checks": {
+    "restricted-path": [
+      {
+        "phase": "crash-restart",
+        "passed": true,
+        "realModel": false,
+        "environment": {
+          "restrictedPath": true,
+          "packagedEntry": false,
+          "isolatedHome": true,
+          "fixtureCliUsesEnvNode": true
+        }
+      },
+      {
+        "phase": "crash",
+        "passed": true,
+        "realModel": false,
+        "environment": {
+          "restrictedPath": true,
+          "packagedEntry": false,
+          "isolatedHome": true,
+          "fixtureCliUsesEnvNode": true
+        }
+      },
+      {
+        "phase": "first",
+        "passed": true,
+        "realModel": false,
+        "environment": {
+          "restrictedPath": true,
+          "packagedEntry": false,
+          "isolatedHome": true,
+          "fixtureCliUsesEnvNode": true
+        }
+      },
+      {
+        "phase": "restart",
+        "passed": true,
+        "realModel": false,
+        "environment": {
+          "restrictedPath": true,
+          "packagedEntry": false,
+          "isolatedHome": true,
+          "fixtureCliUsesEnvNode": true
+        }
+      }
+    ],
+    "restricted-path-packaged": [
+      {
+        "phase": "crash-restart",
+        "passed": true,
+        "realModel": false,
+        "environment": {
+          "restrictedPath": true,
+          "packagedEntry": true,
+          "isolatedHome": true,
+          "fixtureCliUsesEnvNode": true
+        }
+      },
+      {
+        "phase": "crash",
+        "passed": true,
+        "realModel": false,
+        "environment": {
+          "restrictedPath": true,
+          "packagedEntry": true,
+          "isolatedHome": true,
+          "fixtureCliUsesEnvNode": true
+        }
+      },
+      {
+        "phase": "first",
+        "passed": true,
+        "realModel": false,
+        "environment": {
+          "restrictedPath": true,
+          "packagedEntry": true,
+          "isolatedHome": true,
+          "fixtureCliUsesEnvNode": true
+        }
+      },
+      {
+        "phase": "restart",
+        "passed": true,
+        "realModel": false,
+        "environment": {
+          "restrictedPath": true,
+          "packagedEntry": true,
+          "isolatedHome": true,
+          "fixtureCliUsesEnvNode": true
+        }
+      }
+    ],
+    "desktop": [
+      {
+        "phase": "first",
+        "passed": true,
+        "realModel": null,
+        "environment": null
+      },
+      {
+        "phase": "restart",
+        "passed": true,
+        "realModel": null,
+        "environment": null
+      }
+    ],
+    "agent-regression": [
+      {
+        "phase": "first",
+        "passed": true,
+        "realModel": false,
+        "environment": {
+          "restrictedPath": false,
+          "packagedEntry": false,
+          "isolatedHome": true,
+          "fixtureCliUsesEnvNode": false
+        }
+      },
+      {
+        "phase": "restart",
+        "passed": true,
+        "realModel": false,
+        "environment": {
+          "restrictedPath": false,
+          "packagedEntry": false,
+          "isolatedHome": true,
+          "fixtureCliUsesEnvNode": false
+        }
+      },
+      {
+        "phase": "crash",
+        "passed": true,
+        "realModel": false,
+        "environment": {
+          "restrictedPath": false,
+          "packagedEntry": false,
+          "isolatedHome": true,
+          "fixtureCliUsesEnvNode": false
+        }
+      },
+      {
+        "phase": "crash-restart",
+        "passed": true,
+        "realModel": false,
+        "environment": {
+          "restrictedPath": false,
+          "packagedEntry": false,
+          "isolatedHome": true,
+          "fixtureCliUsesEnvNode": false
+        }
+      }
+    ]
+  },
+  "nativePackage": {
+    "sqlite": true,
+    "pty": true,
+    "node": "24.22.0",
+    "electron": "45.0.0"
+  }
+}

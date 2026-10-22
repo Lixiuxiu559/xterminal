@@ -19,6 +19,9 @@ coverage/
 *.key
 *.pem
 
+# Local agent worktrees (never commit)
+.claude/worktrees/
+
 # OS/editor files
 .DS_Store
 ._*

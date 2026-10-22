@@ -1,0 +1,9 @@
+{
+  "passed": false,
+  "mode": "fixture",
+  "phase": "first",
+  "checks": [],
+  "errors": [],
+  "error": "AssertionError [ERR_ASSERTION]: codex unavailable\n\nfalse !== true\n",
+  "at": "2026-10-22T08:18:40.001Z"
+}

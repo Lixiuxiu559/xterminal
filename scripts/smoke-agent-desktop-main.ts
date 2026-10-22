@@ -229,4 +229,4 @@ async function run(window: BrowserWindow) {
 }
 let running = false;
 app.on('browser-window-created', (_event, window) => { if (!running) { running = true; void run(window); } });
-require(resolve('dist/desktop/main.cjs'));
+require(process.env.XTERMINAL_SMOKE_PACKAGE_ENTRY ?? resolve('dist/desktop/main.cjs'));

@@ -2,7 +2,7 @@ import { childInputFd, guardProcess, type ProcessGuard } from '../../shared/src/
 import { spawn, execFile, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { tmpdir } from 'node:os';
-import type { AgentRuntime, AgentRuntimeOptions, AgentEngineEvent, AgentAnswer, AgentInteraction } from '../../../protocol/src/agent.ts';
+import type { AgentRuntime, AgentRuntimeOptions, AgentEngineEvent, AgentAnswer, AgentInteraction, AgentEnvironment } from '../../../protocol/src/agent.ts';
 import type { EngineAvailability } from '../../../protocol/src/desktop.ts';
 import type { AgentModel } from '../../../protocol/src/agent.ts';
 
@@ -31,12 +31,12 @@ function failureDescription(raw: unknown): { summary: string; category: string; 
   return { summary, category, httpStatus: typeof status === 'number' && Number.isInteger(status) ? status : null };
 }
 
-export async function detectCodex(executablePath = 'codex'): Promise<EngineAvailability> {
+export async function detectCodex(executablePath = 'codex', options: { env?: AgentEnvironment } = {}): Promise<EngineAvailability> {
   return new Promise((resolve) => {
-    execFile(executablePath, ['--version'], { timeout: 5000, maxBuffer: 16384, encoding: 'utf8' }, (error, stdout) => {
+    execFile(executablePath, ['--version'], { timeout: 5000, maxBuffer: 16384, encoding: 'utf8', env: options.env }, (error, stdout) => {
       const version = /codex(?:-cli)?\s+([\d.]+[^\s]*)/.exec(stdout)?.[1] ?? null;
       resolve({ engine: 'codex', available: !error && !!version, version,
-        reason: error || !version ? '无法运行 Codex，请先安装官方 CLI 并完成登录' : null });
+        reason: error || !version ? 'Codex CLI 版本探测失败，请检查可执行文件及其 Node 运行环境后重启应用。' : null });
     });
   });
 }
@@ -83,7 +83,7 @@ export class CodexRuntime implements AgentRuntime {
   async #initialize(): Promise<void> {
     try {
       this.#child = this.#deps.spawn?.() ?? spawn(this.#options.executablePath ?? 'codex', ['app-server', '--listen', 'stdio://'], {
-        cwd: this.#options.cwd, stdio: ['pipe', 'pipe', 'pipe'], detached: true,
+        cwd: this.#options.cwd, env: this.#options.env, stdio: ['pipe', 'pipe', 'pipe'], detached: true,
       });
       const child = this.#child;
       child.stdout.setEncoding('utf8');
@@ -367,7 +367,7 @@ export class CodexRuntime implements AgentRuntime {
   }
 }
 
-export async function listCodexModels(executablePath?: string): Promise<AgentModel[]> {
-  const runtime = new CodexRuntime({ cwd: tmpdir(), nativeContextId: null, executablePath, onEvent: () => {} });
+export async function listCodexModels(executablePath?: string, env?: AgentEnvironment): Promise<AgentModel[]> {
+  const runtime = new CodexRuntime({ cwd: tmpdir(), nativeContextId: null, executablePath, env, onEvent: () => {} });
   try { return await runtime.models(); } finally { await runtime.close(); }
 }

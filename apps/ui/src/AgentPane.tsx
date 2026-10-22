@@ -1,3 +1,4 @@
+import { randomId } from './randomId.ts';
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import type { AppSession, DesktopBridge } from '../../../packages/protocol/src/desktop';
 import type { AgentAnswer, AgentInteraction, AgentMessage, AgentQuestion, AgentSnapshot, AgentModel } from '../../../packages/protocol/src/agent';
@@ -127,7 +128,7 @@ export function AgentPane({ bridge, session, online, canControl, onChange }: { b
     if (!online || !canControl || busy || waiting || !text || !snapshot) return;
     setSending(true); setError(''); followBottom.current = true;
     try {
-      const updated = await bridge.invoke('agent.turn.start', { sessionId: session.id, text, commandId: crypto.randomUUID(), ...modelTurnParameters(session.engine, selectedModel) });
+      const updated = await bridge.invoke('agent.turn.start', { sessionId: session.id, text, commandId: randomId(), ...modelTurnParameters(session.engine, selectedModel) });
       if (!alive.current) { if (drafts.get(session.id) === draft) drafts.delete(session.id); return; }
       changeDraft(''); onChange(updated);
     } catch (err) { if (alive.current) setError(agentSendError(err)); }

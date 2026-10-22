@@ -53,7 +53,7 @@ function domainRequest(method: string, params: unknown, control?: ControlStamp):
 }
 async function requestPublicCertificate(): Promise<{ saved: boolean }> {
   const certificatePath = await request({ type: 'certificate.path' });
-  if (typeof certificatePath !== 'string') throw new Error('请先开启一次局域网访问，生成电脑的本地证书');
+  if (typeof certificatePath !== 'string') throw new Error('证书导出仅适用于已开启的 HTTPS 模式');
   const destination = await dialog.showSaveDialog(window!, { title: '导出局域网访问证书', defaultPath: 'XTerminal-Local-CA.crt', filters: [{ name: 'CA 证书', extensions: ['crt'] }] });
   if (destination.canceled || !destination.filePath) return { saved: false };
   await copyFile(certificatePath, destination.filePath);

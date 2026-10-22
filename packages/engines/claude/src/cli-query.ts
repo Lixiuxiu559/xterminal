@@ -82,8 +82,8 @@ class CliQuery implements ClaudeQuery {
     const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose', '--include-partial-messages', '--replay-user-messages', '--permission-prompts', 'host', '--permission-prompt-tool=stdio', '--permission-mode', 'manual'];
     if (input.options.resume) args.push('--resume', input.options.resume);
     // Preserve native CLI defaults: no custom/minimal system prompt or setting-source filtering.
-    const spawnOptions: SpawnOptions = { command: input.options.pathToClaudeCodeExecutable ?? 'claude', args, cwd: input.options.cwd, env: process.env, signal: this.spawningAbort.signal };
-    this.child = input.options.spawnClaudeCodeProcess ? input.options.spawnClaudeCodeProcess(spawnOptions) : spawn(spawnOptions.command, args, { cwd: spawnOptions.cwd, stdio: ['pipe', 'pipe', 'pipe'], signal: spawnOptions.signal, windowsHide: true });
+    const spawnOptions: SpawnOptions = { command: input.options.pathToClaudeCodeExecutable ?? 'claude', args, cwd: input.options.cwd, env: input.options.env ?? process.env, signal: this.spawningAbort.signal };
+    this.child = input.options.spawnClaudeCodeProcess ? input.options.spawnClaudeCodeProcess(spawnOptions) : spawn(spawnOptions.command, args, { cwd: spawnOptions.cwd, env: spawnOptions.env, stdio: ['pipe', 'pipe', 'pipe'], signal: spawnOptions.signal, windowsHide: true });
     if ('stderr' in this.child) (this.child as ReturnType<typeof spawn>).stderr?.resume();
     this.child.stdout.on('data', this.onData);
     this.child.stdout.once('end', this.onEnd);

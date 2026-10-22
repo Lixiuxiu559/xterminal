@@ -49,7 +49,7 @@ export class SessionHost {
       changed: state => this.options.emit({ type: 'lan.changed', state }),
       onDeviceRevoked: principal => this.revokeControl(principal),
     }, services.lan);
-    this.agents = new AgentSessions({ store: this.store, instanceId: this.instanceId,
+    this.agents = new AgentSessions({ store: this.store, instanceId: this.instanceId, shell: this.options.shell,
       state: (id, state) => this.states.set(id, state), catalog: () => this.changed(),
       emit: snapshot => this.emit({ type: 'agent.changed', snapshot }),
     }, services.agents);
@@ -126,7 +126,7 @@ export class SessionHost {
   private async dispatch(request: ReturnType<typeof validateRequest>, principalId: string): Promise<unknown> {
     switch (request.method) {
       case 'lan.status': return this.lan.status();
-      case 'lan.enable': return this.lan.enable(parameters(request, 'lan.enable').address);
+      case 'lan.enable': return this.lan.enable(parameters(request, 'lan.enable').address, parameters(request, 'lan.enable').mode);
       case 'lan.disable': return this.lan.disable();
       case 'lan.rotateCode': return this.lan.rotate();
       case 'lan.approve': return this.lan.approve(parameters(request, 'lan.approve').ticket);

@@ -1,5 +1,14 @@
 # 更新记录
 
+## 未发布
+
+- 新增HTTP/WS简便局域网模式，无需证书，HTTPS/WSS保留可选。HTTP Cookie仅去掉Secure并使用独立名称，配对、桌面批准、来源校验和控制租约保留；切换须先关闭并重新配对。
+- 手机HTTP非安全上下文采用安全随机UUID兼容生成，实时通道依据网页协议选择WS/WSS，并明确显示连接是否加密。
+
+- 修复从访达 / Dock 启动时无法发现 nvm 等目录中的 Claude Code 与 Codex：统一解析 CLI 路径、登录 Shell PATH 和每引擎运行环境，检测、模型列表与会话启动共用结果。
+- 支持 `XTERMINAL_CLAUDE_PATH` / `XTERMINAL_CODEX_PATH` 显式覆盖；无效覆盖不静默回退。不修改系统 PATH，不改变现有 CLI 版本或登录要求。
+- 增加精简 PATH、临时 HOME / nvm 安装的桌面夹具验收，覆盖 Codex 的 env-node 启动依赖；不调用真实模型。
+
 ## 0.1.1 — 2026-10-22
 
 首个源码提交收录当前可试用版本；此前未建立 Git 历史，不将早期阶段虚构为独立提交。

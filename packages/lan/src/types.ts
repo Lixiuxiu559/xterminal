@@ -1,3 +1,4 @@
+import type { LanMode } from '../../protocol/src/lan.ts';
 import type { AppEvent, RpcResponse } from '../../protocol/src/desktop.ts';
 
 export interface DeviceRecord {
@@ -20,16 +21,17 @@ export interface PairingRequest {
   requestedAtMs: number;
   expiresAtMs: number;
 }
-export interface LanAddress { bindAddress: string; port: number; origin: string }
+export interface LanAddress { bindAddress: string; port: number; origin: string; mode: LanMode }
 export interface LanStarted {
   address: LanAddress;
   pairingCode: PairingCode;
-  caCertificatePath: string;
+  caCertificatePath: string | null;
 }
 export interface LanGatewayOptions {
   dataPath: string;
   uiPath: string;
   bindAddress: string;
+  mode?: LanMode;
   port?: number;
   repository?: DeviceRepository;
   execute: (principalId: string, request: unknown) => Promise<RpcResponse>;

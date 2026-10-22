@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "context": {
+    "secure": false,
+    "randomUUID": "undefined",
+    "getRandomValues": "function"
+  },
+  "mode": "http",
+  "modelCalls": false,
+  "checks": [
+    "private IPv4 nonsecure context",
+    "HTTP BrowserRoot entry and warning",
+    "HTTP cookie pairing without CA",
+    "WS authenticated bootstrap with UUID fallback",
+    "HttpOnly cookie hidden",
+    "shutdown revokes access"
+  ]
+}

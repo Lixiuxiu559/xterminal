@@ -1,3 +1,4 @@
+import { randomId } from './randomId.ts';
 import { useEffect, useRef, useState } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
@@ -116,7 +117,7 @@ export function TerminalPane({ bridge, session, online, canControl, onChange }: 
       if (!current || !live.current.online || !live.current.canControl || live.current.session.state !== 'running' || syncing) return;
       // Inputs are never automatically retried: uncertain delivery must not execute a command twice.
       try {
-        await bridge.invoke('shell.input', { sessionId: session.id, runId: current.runId, terminalEpoch: current.terminalEpoch, inputId: crypto.randomUUID(), data });
+        await bridge.invoke('shell.input', { sessionId: session.id, runId: current.runId, terminalEpoch: current.terminalEpoch, inputId: randomId(), data });
       } catch (err) { fail(err); }
     }
     const keyboard = term.onData(data => { void input(data); });

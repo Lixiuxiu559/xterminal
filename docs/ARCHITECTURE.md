@@ -151,6 +151,8 @@ Host为每个生产引擎建立独立短生命周期监护。Agent使用独立�
 
 ### 6.2 Claude Code
 
+Host 在启动时恢复引擎环境：显式路径覆盖 → 当前 PATH → 有界登录 Shell PATH → 常见安装目录。每个引擎保存独立的绝对路径与环境快照，检测、模型枚举和实际运行共用；为 env-node CLI 补齐 Node 运行目录，不全局修改 `process.env` 或系统 PATH。登录 Shell 固定在用户 HOME 执行、有超时和输出上限，只提取 PATH，原始输出和环境不进入页面或 LAN catalog。CLI 安装或 Shell 环境改变后需明确重启 Host，现有会话不自动替换运行版本。
+
 生产使用用户已安装、未修改的官方 CLI，通过 `--input-format stream-json --output-format stream-json` 持续输入。stdio 权限与控制握手依据已发布 SDK 0.3.304 的协议实现，当前严格锁定 CLI 2.1.304；SDK 仅作 TypeScript 类型引用，不在生产调用 `query()`。版本变化必须先验证协议。
 
 - 使用明确的 `resume` ID，禁止按目录自动选择“最近一个”会话。
@@ -243,17 +245,18 @@ Host 维护规范终端尺寸与有限 scrollback 的服务端终端状态；候
 
 - 默认关闭 LAN listener；用户从桌面显式开启。
 - 选择一个私有 IPv4 地址绑定，第一版不支持公网、UPnP、穿透或自动中继。
-- 正式手机入口使用 HTTPS/WSS；明文 HTTP 仅用于绑定 loopback 的本地开发，不能自动降级为内网 HTTP。
-- 证书在本机生成和保存；手机首次需要完成本地证书信任。具体 iOS / Android 引导属于 M0 真机验证项，不承诺扫码后无感跳过浏览器证书校验。
-- 不引入公共证书服务或公网域名来换取“免配置”。若手机证书信任流程未通过，内网功能保持未验收，不降低加密标准伪装完成。
-- IP 变化后关闭旧 listener，更新证书 SAN 与显示地址，桌面 IPC 不受影响。
+- 提供显式选择的 HTTP/WS 简便模式与 HTTPS/WSS 加密模式；UI默认选择HTTP但共享仍默认关闭，旧API省略mode保持HTTPS。TLS失败不自动降级。
+- HTTP无需证书，仅用于用户接受明文风险的可信家庭网络/个人热点：内容、访问令牌和操作可能被同网攻击者窃听或篡改；来源校验和配对不能替代加密。
+- HTTPS证书在本机生成和保存；手机首次需要完成本地证书信任，不承诺无感跳过浏览器证书校验。HTTP不生成或导出证书。
+- 不引入公共证书服务或公网域名，不提供自动穿透。两种模式均须通过各自验收，不能把HTTP测试当作HTTPS证书真机验收。
+- IP或模式变化先关闭旧listener、断开旧连接并撤销授权，再显式开启重配。HTTPS更新SAN，桌面IPC和本地任务不受影响。
 
 ### 9.2 配对
 
 1. 桌面打开访问开关并生成 8 位一次性配对码，120 秒有效，仅在 Host 内存保留校验值。
-2. 手机打开 HTTPS 地址、完成证书信任，再提交配对码与设备显示名。
+2. 手机打开所选模式的地址（HTTPS先完成证书信任，HTTP无证书），再提交配对码与设备显示名。
 3. Host 限速校验，生成待确认请求；桌面通过本机 IPC 明确允许或拒绝。
-4. 允许后向同源手机发放随机设备会话，Cookie 使用 Secure、HttpOnly、SameSite=Strict，不放 URL。
+4. 允许后向同源手机发放随机设备会话，不放URL。HTTPS使用 `__Host-xterminal-device` / `__Host-xterminal-pairing`，含Secure、HttpOnly、SameSite=Strict、Path=/；HTTP使用独立名称 `xterminal-http-device` / `xterminal-http-pairing`，仅去掉Secure，不使用__Host前缀。不接受另一模式Cookie作为当前授权。
 5. Host 仅存 token 哈希；有效期初始 7 天，设备撤销或关闭访问时实时关闭相应连接并失效授权，同时释放相应控制租约；已开始的本地任务继续运行。
 
 设备名称是用户输入，不能作为身份凭据。默认每来源 5 次失败触发限速，并有 Host 全局失败预算；配对请求过期后不保留可领取授权。

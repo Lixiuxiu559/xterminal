@@ -1,0 +1,27 @@
+{
+  "phase": "first",
+  "hostInstanceId": "fa437b4c-b5f2-4feb-ad15-55e763f5ce76",
+  "checks": [
+    "真实 app:// 页面与受限 preload 加载成功，renderer 无 Node require",
+    "原生目录入口与 realpath 项目去重成功",
+    "非白名单操作和非法引擎被明确拒绝",
+    "局域网默认关闭，真实连接设置显示IP选择与显式开启入口",
+    "会话创建幂等，重复启动不会生成第二个活跃 PTY",
+    "真实窗口键盘输入经过 xterm onData 到达同一 PTY",
+    "390 / 768 / 1440px 真实窗口无页面横向溢出",
+    "受限 IPC → Host → PTY → 快照 / xterm 的真实链路通过",
+    "关闭全部窗口后 Host 与同一 PTY 保持，重新打开恢复相同 run 与输出",
+    "Electron utility: D04：同一 PTY 保持 cd 后的 cwd，中文输出正确",
+    "Electron utility: D05：Ctrl+C 中断前台循环，Shell 继续运行",
+    "Electron utility: D06：持续输出时快照 + watermark 后续帧恢复文本与光标一致，序号连续",
+    "Electron utility: D07：旧 run/epoch、超长 UTF-8、非法尺寸被拒绝，重复 inputId 仅执行一次，resize 不换 epoch",
+    "Electron utility: 突发输出：约 480 KiB 输出完成且 scrollback 限制为 5000 行",
+    "Electron utility: 真实退出：SIGHUP 后 SIGKILL 回收，重复 terminate 共享等待，onExit 仅调用一次",
+    "应用收到 Host 完成确认后进入 will-quit；下次启动核验持久化终态"
+  ],
+  "dialogs": [
+    "有 1 个会话仍在运行"
+  ],
+  "passed": true,
+  "at": "2026-10-22T08:29:57.613Z"
+}

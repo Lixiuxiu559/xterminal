@@ -4,17 +4,17 @@ import { randomUUID } from 'node:crypto';
 import { promisify } from 'node:util';
 import type { CanUseTool, Options, PermissionResult, Query, SDKMessage, SDKUserMessage, SpawnedProcess, SpawnOptions } from '@anthropic-ai/claude-agent-sdk';
 import { cliQuery } from './cli-query.ts';
-import type { AgentAnswer, AgentEngineEvent, AgentInteraction, AgentQuestion, AgentRuntime, AgentRuntimeOptions, AgentTool } from '../../../protocol/src/agent.ts';
+import type { AgentAnswer, AgentEngineEvent, AgentInteraction, AgentQuestion, AgentRuntime, AgentRuntimeOptions, AgentTool, AgentEnvironment } from '../../../protocol/src/agent.ts';
 import type { EngineAvailability } from '../../../protocol/src/desktop.ts';
 
 const runFile = promisify(execFile);
-export async function detectClaude(executablePath = 'claude'): Promise<EngineAvailability> {
+export async function detectClaude(executablePath = 'claude', options: { env?: AgentEnvironment } = {}): Promise<EngineAvailability> {
   let version: string | null = null;
   try {
-    const { stdout } = await runFile(executablePath, ['--version'], { timeout: 5000, maxBuffer: 16_384, windowsHide: true });
+    const { stdout } = await runFile(executablePath, ['--version'], { timeout: 5000, maxBuffer: 16_384, windowsHide: true, env: options.env });
     version = stdout.match(/\b(\d+\.\d+\.\d+)\b/)?.[1] ?? null;
-    if (version !== '2.1.304') return { engine: 'claude', available: false, version, reason: '当前结构化控制协议仅验证 Claude CLI 2.1.304，请使用匹配版本。' };
-    const status = await runFile(executablePath, ['auth', 'status', '--json'], { timeout: 5000, maxBuffer: 16_384, windowsHide: true });
+    if (version !== '2.1.304') return { engine: 'claude', available: false, version, reason: `Claude CLI 版本不匹配：当前 ${version ?? '无法识别'}，本版本仅验证 2.1.304。` };
+    const status = await runFile(executablePath, ['auth', 'status', '--json'], { timeout: 5000, maxBuffer: 16_384, windowsHide: true, env: options.env });
     const parsed: unknown = JSON.parse(status.stdout);
     const loggedIn = !!parsed && typeof parsed === 'object' && 'loggedIn' in parsed && parsed.loggedIn === true;
     return { engine: 'claude', available: loggedIn, version, reason: loggedIn ? null : '请先在官方 Claude Code CLI 完成登录；XTerminal 不收集登录凭据。' };
@@ -114,7 +114,7 @@ export class ClaudeRuntime implements AgentRuntime {
   };
   private initialize(): void {
     const options: Options = {
-      cwd: this.options.cwd, pathToClaudeCodeExecutable: this.options.executablePath ?? 'claude',
+      cwd: this.options.cwd, pathToClaudeCodeExecutable: this.options.executablePath ?? 'claude', env: this.options.env,
       ...(this.contextId ? { resume: this.contextId } : {}),
       includePartialMessages: true, permissionMode: 'default', settingSources: ['user', 'project', 'local'],
       systemPrompt: { type: 'preset', preset: 'claude_code' },

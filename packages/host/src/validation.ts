@@ -38,7 +38,7 @@ export function validateRequest(input: unknown): RpcRequest & { method: AppMetho
     case 'lan.disable':
     case 'lan.rotateCode':
     case 'lan.exportCertificate': exact(p, []); break;
-    case 'lan.enable': exact(p, ['address']); text(p, 'address', 45); break;
+    case 'lan.enable': exact(p, ['address', 'mode']); text(p, 'address', 45); if (p.mode !== undefined && p.mode !== 'http' && p.mode !== 'https') fail('连接模式无效'); break;
     case 'lan.approve':
     case 'lan.reject': exact(p, ['ticket']); text(p, 'ticket'); break;
     case 'lan.revoke': exact(p, ['deviceId']); text(p, 'deviceId'); break;
